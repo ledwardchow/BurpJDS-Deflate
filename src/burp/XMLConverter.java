@@ -47,15 +47,17 @@ public class XMLConverter {
 
     public static byte[] toXML(byte[] plaintext, IExtensionHelpers helpers) throws IOException, ClassNotFoundException
     {
-        CustomLoaderObjectInputStream is = null;
-        ByteArrayInputStream bais = new ByteArrayInputStream(plaintext);
-        is = new CustomLoaderObjectInputStream(bais, XMLConverter.getSharedClassLoader());
-        obj = is.readObject();
-        String xml = xstream.toXML(obj);
-        System.out.println("XML: " + xml);
+        String xml = null;
         try {
+            CustomLoaderObjectInputStream is = null;
+            ByteArrayInputStream bais = new ByteArrayInputStream(plaintext);
+            is = new CustomLoaderObjectInputStream(bais, XMLConverter.getSharedClassLoader());
+            obj = is.readObject();
+            xml = xstream.toXML(obj);
+            System.out.println("XML: " + xml);        
             is.close();
-        } catch (Exception ex) {
+        } 
+        catch (Exception ex) {
                 System.out.println("Error deserializing from Java object to XML  " + ex.getMessage());
         }
         return xml.getBytes();

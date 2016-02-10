@@ -44,5 +44,5 @@ Temporary Items
 nbproject
 build
 logoutput.txt
-build.xml
 test
+dist/README.TXT

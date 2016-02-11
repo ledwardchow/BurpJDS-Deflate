@@ -26,7 +26,7 @@ public class DeserialisedTab implements IMessageEditorTabFactory
     public IMessageEditorTab createNewInstance(IMessageEditorController controller, boolean editable)
     {
         // create a new instance of our custom editor tab
-        return new DeserialisedInputTab(controller, editable);
+        return new DeserialisedInputTab(controller, editable, helpers, callbacks);
     }
 
     //
@@ -38,10 +38,15 @@ public class DeserialisedTab implements IMessageEditorTabFactory
         private boolean editable;
         private ITextEditor txtInput;
         private byte[] currentMessage;
+        private byte[] postbody;
+        private IExtensionHelpers helpers;
+        private IBurpExtenderCallbacks callbacks;
 
-        public DeserialisedInputTab(IMessageEditorController controller, boolean editable)
+        public DeserialisedInputTab(IMessageEditorController controller, boolean editable, IExtensionHelpers helpers, IBurpExtenderCallbacks callbacks)
         {
             this.editable = editable;
+            this.helpers = helpers;
+            this.callbacks = callbacks;
 
             // create an instance of Burp's text editor, to display our deserialized data
             txtInput = callbacks.createTextEditor();
@@ -67,8 +72,22 @@ public class DeserialisedTab implements IMessageEditorTabFactory
         @Override
         public boolean isEnabled(byte[] content, boolean isRequest)
         {
-            // enable this tab for requests containing deflate data
-            return helpers.indexOf(content, new byte[]{0x78}, false, 0, content.length) > -1;
+            try {
+                // enable this tab for requests containing deflate data
+                String blah = new String(content);
+                int newlineposition = blah.indexOf("\r\n\r\n");
+                postbody = Arrays.copyOfRange(content, newlineposition+4, content.length);
+                if (postbody.length > 0) {
+                    return (postbody[0] == 0x78);
+                }
+                else {            
+                    return false;
+                }   
+            }
+            catch (Exception ex) {
+                callbacks.printOutput(ex.getStackTrace().toString());
+                return false;
+            }                     
         }
 
         @Override

@@ -26,7 +26,7 @@ public class ZlibOnlyTab implements IMessageEditorTabFactory
     public IMessageEditorTab createNewInstance(IMessageEditorController controller, boolean editable)
     {
         // create a new instance of our custom editor tab
-        return new ZlibInputTab(controller, editable);
+        return new ZlibInputTab(controller, editable, helpers, callbacks);
     }
 
     //
@@ -38,12 +38,17 @@ public class ZlibOnlyTab implements IMessageEditorTabFactory
         private boolean editable;
         private ITextEditor txtInput;
         private byte[] currentMessage;
+        private IExtensionHelpers helpers;
+        private byte[] postbody;
+        private IBurpExtenderCallbacks callbacks;
 
-        public ZlibInputTab(IMessageEditorController controller, boolean editable)
+        public ZlibInputTab(IMessageEditorController controller, boolean editable, IExtensionHelpers helpers, IBurpExtenderCallbacks callbacks)
         {
             this.editable = editable;
             txtInput = callbacks.createTextEditor();
             txtInput.setEditable(editable);
+            this.helpers = helpers;
+            this.callbacks = callbacks;
         }
 
         //
@@ -65,17 +70,28 @@ public class ZlibOnlyTab implements IMessageEditorTabFactory
         @Override
         public boolean isEnabled(byte[] content, boolean isRequest)
         {
-            // enable this tab for requests containing deflate data
-            return helpers.indexOf(content, new byte[]{0x78}, false, 0, content.length) > -1;
+            try {
+                // enable this tab for requests containing deflate data
+                String blah = new String(content);
+                int newlineposition = blah.indexOf("\r\n\r\n");
+                postbody = Arrays.copyOfRange(content, newlineposition+4, content.length);
+                if (postbody.length > 0) {
+                    return (postbody[0] == 0x78);
+                }
+                else {            
+                    return false;
+                }   
+            }
+            catch (Exception ex ) {
+                callbacks.printOutput(ex.getMessage());
+                return false;
+            }
         }
 
         @Override
         public void setMessage(byte[] content, boolean isRequest)
         {
             txtInput.setText(content);
-            String blah = new String(content);
-            int newlineposition = blah.indexOf("\r\n\r\n");
-            byte[] postbody = Arrays.copyOfRange(content, newlineposition+4, content.length);
             if (postbody == null)
             {
                 txtInput.setEditable(false);
